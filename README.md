@@ -1,48 +1,159 @@
-# rpl-udp
+# BIL304 – OTA Firmware Update over RPL
 
-A simple RPL network with UDP communication. This is a self-contained example:
-it includes a DAG root (`udp-server.c`) and DAG nodes (`udp-clients.c`).
-This example runs without a border router -- this is a stand-alone RPL network.
+## Project Overview
 
-The DAG root also acts as UDP server. The DAG nodes are UDP client. The clients
-send a UDP request periodically, that simply includes a counter as payload.
-When receiving a request, The server sends a response with the same counter
-back to the originator.
+This project was developed for the **BIL304 Operating Systems** course using **Contiki-NG** and the **Cooja Simulator**.
 
-The `.csc` files show example networks in the Cooja simulator, for sky motes and
-for cooja motes.
+The objective is to implement a reliable **Over-The-Air (OTA) firmware update mechanism** over an RPL-based wireless sensor network.
 
-For this example a "renode" make target is available, to run a 3 node
-emulation in the Renode framework. For further instructions on installing and
-using Renode please refer to [the documentation][1].
+---
 
-[1]: https://docs.contiki-ng.org/en/develop/doc/tutorials/Running-Contiki-NG-in-Renode.html
+## Network Topology
 
-The rpl-udp.robot is a Robot framework test for renode. To run that do:
+| Node   | Role                    |
+| ------ | ----------------------- |
+| Node 1 | RPL Root & OTA Receiver |
+| Node 2 | OTA Sender              |
+| Node 3 | Relay Node              |
 
-    >make TARGET=cc2538dk
-    >renode-test rpl-udp.robot
+```text
+Node 2  --->  Node 3  --->  Node 1
+(Sender)     (Relay)      (Receiver)
+```
 
-## BIL304 Z1 OTA note
+---
 
-`BIL304-OS-Project-1.csc` uses emulated Z1 motes and must be built with
-`TARGET=z1`. The full 129760-byte firmware is too large to embed as a C array
-and Coffee file names are too short for `gonderilecek-guncel-firmware.z1`, so
-the OTA sender reads the image from raw Z1 external flash (`xmem`) instead.
+## Firmware Information
 
-The `udp-client.z1` Makefile target preloads `gonderilecek-guncel-firmware.z1`
-into the MSPSim flash backing file `build/z1/udp-client.flash` at offset
-`524288`. Node 2 reads the full image from that xmem offset, sends it using the
-START/DATA/ACK/END stop-and-wait protocol, and Node 1 stores the reconstructed
-image in its own xmem at the same offset before verifying the checksum.
+```text
+Firmware File : gonderilecek-guncel-firmware.z1
+Firmware Size : 129760 Bytes (~127 KB)
+Architecture  : TI MSP430
+Format        : ELF32
+```
 
-After the transfer finishes, Node 1's received image is host-visible in
-`build/z1/udp-server.flash`. Extract the slot-B range and compare it with the
-original firmware:
+---
 
-    dd if=build/z1/udp-server.flash of=received-firmware.z1 bs=1 skip=524288 count=129760
-    cmp received-firmware.z1 gonderilecek-guncel-firmware.z1
-    sha256sum received-firmware.z1 gonderilecek-guncel-firmware.z1
+## OTA Protocol
 
-`udp-server.flash` is created by Cooja/MSPSim when the Z1 server mote writes to
-external flash during the simulation.
+The firmware is divided into fixed-size blocks and transmitted using a custom UDP-based OTA protocol.
+
+### Packet Types
+
+* START
+* DATA
+* ACK
+* END
+
+### Transfer Parameters
+
+```text
+Block Size   : 8 Bytes (64 Bits)
+Total Blocks : 16220
+```
+
+Reliability is achieved through:
+
+* ACK packets
+* Timeout detection
+* Retransmission
+* Checksum verification
+
+---
+
+## Results
+
+Successful transfer output:
+
+```text
+Received 16220/16220 blocks
+
+Full received firmware checksum:
+1752943717
+
+Expected full firmware checksum:
+1752943717
+
+Flash stored firmware size:
+129760/129760 bytes
+
+Yuklenmeye hazir yeni firmware alimi tamamlandi.
+```
+
+The firmware was successfully transferred, reconstructed, stored in simulated flash memory, and verified.
+
+---
+
+## ELF Analysis
+
+The transferred firmware was analyzed using:
+
+```bash
+file
+readelf
+objdump
+nm
+size
+```
+
+Results:
+
+```text
+Architecture : TI MSP430
+Format       : ELF32
+
+.text        : 71715 Bytes
+.data        : 336 Bytes
+.bss         : 5706 Bytes
+
+Total Size   : 77757 Bytes
+```
+
+---
+
+## Build
+
+```bash
+make clean TARGET=z1
+
+make udp-client.z1 TARGET=z1
+
+make udp-server.z1 TARGET=z1
+```
+
+---
+
+## Run Simulation
+
+```bash
+cd ~/contiki-ng/tools/cooja
+
+./gradlew run --args='--gui ../../examples/rpl-udp/BIL304-OS-Project-1.csc'
+```
+
+---
+
+## Technologies
+
+* Contiki-NG
+* Cooja Simulator
+* RPL Lite
+* UDP
+* MSP430
+* ELF Analysis Tools
+
+---
+
+## Project Team
+
+* Habib Sultani
+* Rasha Muhammed Ali
+* Abdullah Fawzi Saad Al Rayyis
+* Saad
+
+---
+
+## Course
+
+**BIL304 – Operating Systems**
+**Ondokuz Mayıs University**
