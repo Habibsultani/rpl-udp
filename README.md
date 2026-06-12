@@ -7,26 +7,27 @@ This project was developed for the **BIL304 Operating Systems** course using **C
 The objective of this project is to implement a reliable **Over-The-Air (OTA) firmware update mechanism** over an RPL-based wireless sensor network. The system demonstrates how a firmware image can be fragmented, transmitted, verified, and stored on a remote device through a multi-hop IoT network.
 
 ---
-##Project Demonstration Video
+## Project Demonstration Video
 
-YouTube Video Link:
+### YouTube Video Link
+
 https://youtu.be/L5Fxu_aonlQ
 
 The video includes:
 
- -Cooja simulation demonstration
- -Team member presentations
- -OTA workflow explanation
- -Checksum verification explanation
- -Final successful firmware transfer output
+* Cooja simulation demonstration
+* Team member presentations
+* OTA workflow explanation
+* Checksum verification explanation
+* Final successful firmware transfer output
 
- 
-#Research Repository
+---
 
-Repository Link:
+## Research Repository
+
+### Repository Link
+
 https://github.com/SAAD-MOHAMMEDD/ota-toolchain-anaysis
-
-
 
 ---
 
