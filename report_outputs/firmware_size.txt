@@ -1,2 +1,0 @@
-   text	   data	    bss	    dec	    hex	filename
-  71715	    336	   5706	  77757	  12fbd	gonderilecek-guncel-firmware.z1

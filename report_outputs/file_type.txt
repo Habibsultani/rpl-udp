@@ -1,1 +1,0 @@
-gonderilecek-guncel-firmware.z1: ELF 32-bit LSB executable, TI msp430, version 1 (embedded), statically linked, with debug_info, not stripped
