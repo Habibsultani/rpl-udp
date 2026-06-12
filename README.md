@@ -4,7 +4,25 @@
 
 This project was developed for the **BIL304 Operating Systems** course using **Contiki-NG** and the **Cooja Simulator**.
 
-The objective is to implement a reliable **Over-The-Air (OTA) firmware update mechanism** over an RPL-based wireless sensor network.
+The objective of this project is to implement a reliable **Over-The-Air (OTA) firmware update mechanism** over an RPL-based wireless sensor network. The system demonstrates how a firmware image can be fragmented, transmitted, verified, and stored on a remote device through a multi-hop IoT network.
+
+---
+
+## Why OTA Updates?
+
+In large-scale IoT systems, manually updating devices is expensive and time-consuming.
+
+OTA (Over-The-Air) updates allow firmware to be distributed remotely through a network without physical access to devices.
+
+Advantages:
+
+* Remote firmware deployment
+* Faster bug fixes
+* Security patch distribution
+* Reduced maintenance cost
+* Scalable device management
+
+This project demonstrates a simplified OTA firmware update workflow using Contiki-NG.
 
 ---
 
@@ -23,6 +41,31 @@ Node 2  --->  Node 3  --->  Node 1
 
 ---
 
+## System Architecture
+
+```text
+                RPL Network
+
+     Node 2                Node 3                Node 1
+  (OTA Sender)  ----->   (Relay)   ----->   (RPL Root)
+
+        |                                      |
+        |                                      |
+        +---- Firmware Transfer -------------->|
+                                               |
+                                               v
+                                       External Flash
+                                           (xmem)
+```
+
+Node 2 reads the firmware image and transmits it through the RPL network.
+
+Node 3 acts as an intermediate forwarding node.
+
+Node 1 receives all firmware blocks, stores them into external flash memory, verifies integrity, and prepares the image for installation.
+
+---
+
 ## Firmware Information
 
 ```text
@@ -34,9 +77,23 @@ Format        : ELF32
 
 ---
 
-## OTA Protocol
+## Implemented Method
 
-The firmware is divided into fixed-size blocks and transmitted using a custom UDP-based OTA protocol.
+The original Contiki-NG `rpl-udp` example only transmitted simple text messages:
+
+```text
+Merhaba 1
+Merhaba 2
+Merhaba 3
+```
+
+In this project, the example was extended to support real OTA firmware transfer.
+
+The firmware image is fragmented into fixed-size blocks and transmitted over UDP.
+
+---
+
+## OTA Protocol
 
 ### Packet Types
 
@@ -52,16 +109,157 @@ Block Size   : 8 Bytes (64 Bits)
 Total Blocks : 16220
 ```
 
-Reliability is achieved through:
+---
 
+## Packet Structure
+
+### START Packet
+
+| Field         | Description         |
+| ------------- | ------------------- |
+| Type          | START               |
+| Firmware Size | Total firmware size |
+| Block Count   | Number of blocks    |
+| Checksum      | Expected checksum   |
+
+### DATA Packet
+
+| Field        | Description     |
+| ------------ | --------------- |
+| Type         | DATA            |
+| Block Number | Sequence number |
+| Length       | Payload length  |
+| Checksum     | Block checksum  |
+| Payload      | Firmware bytes  |
+
+### ACK Packet
+
+| Field        | Description        |
+| ------------ | ------------------ |
+| Type         | ACK                |
+| Block Number | Acknowledged block |
+
+### END Packet
+
+| Field              | Description |
+| ------------------ | ----------- |
+| Type               | END         |
+| Transfer completed |             |
+
+---
+
+## Transmission Flow
+
+```text
+START
+  ↓
+DATA Block 1
+  ↓
+ACK
+  ↓
+DATA Block 2
+  ↓
+ACK
+  ↓
+...
+  ↓
+DATA Block 16220
+  ↓
+ACK
+  ↓
+END
+```
+
+---
+
+## Reliability Mechanisms
+
+UDP does not guarantee reliable delivery. Therefore, the following mechanisms were implemented:
+
+* Block numbering
 * ACK packets
 * Timeout detection
 * Retransmission
 * Checksum verification
+* Complete firmware validation
+
+These mechanisms ensure that missing or corrupted packets can be detected and retransmitted.
 
 ---
 
-## Results
+## Sample Code Snippets
+
+### Sending a Firmware Block
+
+```c
+simple_udp_sendto(&udp_conn,
+                  packet,
+                  packet_len,
+                  &dest_ipaddr);
+```
+
+### ACK Verification
+
+```c
+if(waiting_for_ack) {
+  retransmit_block();
+}
+```
+
+### Writing to Flash
+
+```c
+xmem_pwrite(buffer,
+            length,
+            offset);
+```
+
+### Integrity Verification
+
+```c
+if(received_checksum == expected_checksum) {
+  firmware_valid = 1;
+}
+```
+
+---
+
+## Firmware Storage
+
+The received firmware is stored inside simulated external flash memory (xmem).
+
+```text
+Storage Offset : 524288
+```
+
+Node 1 reconstructs the firmware image and stores it into external flash before performing integrity verification.
+
+---
+
+## Checksum Verification
+
+To ensure firmware integrity, checksum verification is used.
+
+Process:
+
+1. Sender calculates firmware checksum.
+2. Receiver reconstructs the image.
+3. Receiver calculates checksum again.
+4. Both values are compared.
+
+If:
+
+```text
+Expected Checksum == Calculated Checksum
+```
+
+the firmware is accepted.
+
+Otherwise, the update is rejected.
+
+---
+
+## Simulation Results
 
 Successful transfer output:
 
@@ -78,9 +276,11 @@ Flash stored firmware size:
 129760/129760 bytes
 
 Yuklenmeye hazir yeni firmware alimi tamamlandi.
+
+OTA firmware transfer finished.
 ```
 
-The firmware was successfully transferred, reconstructed, stored in simulated flash memory, and verified.
+The firmware was successfully transferred, reconstructed, stored in flash memory, and verified.
 
 ---
 
@@ -109,6 +309,16 @@ Format       : ELF32
 Total Size   : 77757 Bytes
 ```
 
+Important sections:
+
+| Section  | Description             |
+| -------- | ----------------------- |
+| .text    | Executable code         |
+| .data    | Initialized variables   |
+| .bss     | Uninitialized variables |
+| .rodata  | Read-only constants     |
+| .vectors | Interrupt vectors       |
+
 ---
 
 ## Build
@@ -133,109 +343,53 @@ cd ~/contiki-ng/tools/cooja
 
 ---
 
-## Technologies
-
-* Contiki-NG
-* Cooja Simulator
-* RPL Lite
-* UDP
-* MSP430
-* ELF Analysis Tools
-
----
-
 ## How to Run the Project
 
 ### Prerequisites
 
-Before running the project, make sure the following tools are installed:
+Required software:
 
 * Ubuntu / WSL
-* Java JDK 17 or newer
+* Java JDK 17+
 * Git
 * Contiki-NG
 * Cooja Simulator
 
----
-
-### Running the Project on Windows (WSL)
-
-Open PowerShell and start Ubuntu:
+### Running on Windows (WSL)
 
 ```powershell
 wsl
 ```
 
-Go to the project directory:
-
 ```bash
 cd ~/contiki-ng/examples/rpl-udp
-```
 
-Clean previous builds:
-
-```bash
 make clean TARGET=z1
-```
 
-Build the client firmware:
-
-```bash
 make udp-client.z1 TARGET=z1
-```
 
-Build the server firmware:
-
-```bash
 make udp-server.z1 TARGET=z1
 ```
 
-Start the Cooja simulator:
-
 ```bash
 cd ~/contiki-ng/tools/cooja
+
 ./gradlew run --args='--gui ../../examples/rpl-udp/BIL304-OS-Project-1.csc'
 ```
 
-Wait until the simulation finishes and verify that the following message appears:
-
-```text
-Received 16220/16220 blocks
-
-Flash stored firmware size:
-129760/129760 bytes
-
-Yuklenmeye hazir yeni firmware alimi tamamlandi.
-```
-
----
-
-### Running Directly on Linux
-
-Clone Contiki-NG:
+### Running on Linux
 
 ```bash
 git clone https://github.com/contiki-ng/contiki-ng.git
-cd contiki-ng
-```
 
-Navigate to the project:
+cd contiki-ng/examples/rpl-udp
 
-```bash
-cd examples/rpl-udp
-```
-
-Build the firmware:
-
-```bash
 make clean TARGET=z1
 
 make udp-client.z1 TARGET=z1
 
 make udp-server.z1 TARGET=z1
 ```
-
-Launch Cooja:
 
 ```bash
 cd ~/contiki-ng/tools/cooja
@@ -245,9 +399,7 @@ cd ~/contiki-ng/tools/cooja
 
 ---
 
-### Expected Output
-
-A successful OTA transfer should produce output similar to:
+## Expected Output
 
 ```text
 Received 16220/16220 blocks
@@ -266,7 +418,20 @@ Yuklenmeye hazir yeni firmware alimi tamamlandi.
 OTA firmware transfer finished.
 ```
 
-This confirms that the firmware image was transferred successfully, reconstructed correctly, stored in flash memory, and verified using checksum validation.
+---
+
+## Technologies
+
+* Contiki-NG
+* Cooja Simulator
+* RPL Lite
+* UDP
+* IPv6
+* MSP430
+* ELF Analysis Tools
+* Linux / WSL
+
+---
 
 
 ## Project Team
