@@ -144,6 +144,131 @@ cd ~/contiki-ng/tools/cooja
 
 ---
 
+## How to Run the Project
+
+### Prerequisites
+
+Before running the project, make sure the following tools are installed:
+
+* Ubuntu / WSL
+* Java JDK 17 or newer
+* Git
+* Contiki-NG
+* Cooja Simulator
+
+---
+
+### Running the Project on Windows (WSL)
+
+Open PowerShell and start Ubuntu:
+
+```powershell
+wsl
+```
+
+Go to the project directory:
+
+```bash
+cd ~/contiki-ng/examples/rpl-udp
+```
+
+Clean previous builds:
+
+```bash
+make clean TARGET=z1
+```
+
+Build the client firmware:
+
+```bash
+make udp-client.z1 TARGET=z1
+```
+
+Build the server firmware:
+
+```bash
+make udp-server.z1 TARGET=z1
+```
+
+Start the Cooja simulator:
+
+```bash
+cd ~/contiki-ng/tools/cooja
+./gradlew run --args='--gui ../../examples/rpl-udp/BIL304-OS-Project-1.csc'
+```
+
+Wait until the simulation finishes and verify that the following message appears:
+
+```text
+Received 16220/16220 blocks
+
+Flash stored firmware size:
+129760/129760 bytes
+
+Yuklenmeye hazir yeni firmware alimi tamamlandi.
+```
+
+---
+
+### Running Directly on Linux
+
+Clone Contiki-NG:
+
+```bash
+git clone https://github.com/contiki-ng/contiki-ng.git
+cd contiki-ng
+```
+
+Navigate to the project:
+
+```bash
+cd examples/rpl-udp
+```
+
+Build the firmware:
+
+```bash
+make clean TARGET=z1
+
+make udp-client.z1 TARGET=z1
+
+make udp-server.z1 TARGET=z1
+```
+
+Launch Cooja:
+
+```bash
+cd ~/contiki-ng/tools/cooja
+
+./gradlew run --args='--gui ../../examples/rpl-udp/BIL304-OS-Project-1.csc'
+```
+
+---
+
+### Expected Output
+
+A successful OTA transfer should produce output similar to:
+
+```text
+Received 16220/16220 blocks
+
+Full received firmware checksum:
+1752943717
+
+Expected full firmware checksum:
+1752943717
+
+Flash stored firmware size:
+129760/129760 bytes
+
+Yuklenmeye hazir yeni firmware alimi tamamlandi.
+
+OTA firmware transfer finished.
+```
+
+This confirms that the firmware image was transferred successfully, reconstructed correctly, stored in flash memory, and verified using checksum validation.
+
+
 ## Project Team
 
 * Habib Sultani
