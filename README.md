@@ -274,7 +274,7 @@ This confirms that the firmware image was transferred successfully, reconstructe
 * Habib Sultani
 * Rasha Muhammed Ali
 * Abdullah Fawzi Saad Al Rayyis
-* Saad
+* Saad Mohammed Abderezak
 
 ---
 
